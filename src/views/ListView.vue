@@ -3,47 +3,61 @@ import {onUpdated, ref} from "vue";
 import axios from "axios";
 import {useRouter} from "vue-router";
 import Navigation from "@/components/Navigation.vue";
+import LoadingState from "@/components/LoadingState.vue";
 
 const router = useRouter();
 const countries = ref([]);
 const regions = ref([]);
 const countryName = ref("");
 const countryRegion = ref("");
+const loading = ref(false)
 
-async function fetchRegionData(){
+
+
+function handleRegions(region){
+  fetchRegionData(region)
+}
+async function fetchRegionData(fillRegion){
   try {
-    const response = await axios.get("https://restcountries.com/v3.1/region/" + countryRegion.value )
-    regions.value = response.data
+    loading.value = true;
+    const response = await axios.get("https://restcountries.com/v3.1/region/" + fillRegion )
+    countries.value = response.data
+    loading.value = false;
   }
   catch (error){
     console.log(error)
+    loading.value = false;
   }
 }
-fetchRegionData();
-onUpdated(()=>{fetchRegionData()})
 
 
 
 async function fetchData(){
   try {
+    // loading.value = true;
     const response = await axios.get("https://restcountries.com/v3.1/name/" + countryName.value )
     countries.value = response.data
+    // loading.value = false;
   }
   catch (error){
     console.log(error)
+    // loading.value = false;
   }
 }
 fetchData();
-
+onUpdated(()=>{if (countryName.value !== ""){fetchData()} })
 
 
 async function fetchAllData(){
   try {
+    loading.value = true;
     const response = await axios.get("https://restcountries.com/v3.1/all" )
     countries.value = response.data
+    loading.value = false;
   }
   catch (error){
     console.log(error)
+    loading.value = false     ;
   }
 }
 fetchAllData();
@@ -51,48 +65,55 @@ fetchAllData();
 </script>
 
 <template>
+  <div class="all">
 
-  <div>
-    <Navigation/>
-  </div>
-  
-  <main class="box">
-    <div class="search-n-filter">
-      <div class="search-box">
-        <span>&#128269;</span>
-      <input v-model="countryName" type="text" placeholder="Search for a country... ">
+      <div>
+        <Navigation/>
       </div>
       
-      <div class="filter-box">
-        <ul>
-          <li><a href="">Filter by Region &#9662;</a>
-            <div class="dropdown">
-              <ul >
-                <li @click="countryRegion" v-for="region in countries" :key="countryRegion"><a href="">{{ region?.region }}</a></li>
-              </ul>
-            </div>
-          </li>
-        </ul>
-      </div>
-    </div>
-   
-    <div class="card-out">
-      <div @click="router.push({name:'country', params:{name:country?.name.common}})" v-for="country in countries" class="card-in">
-        <img :src="country?.flags.png" alt="pic">
-        <div class="card-text">
-          <p class="card-title"> {{ country?.name.common }} </p>
-          <p>Population: {{country?.population}} </p>
-          <p>Region: {{country?.region}} </p>
-          <p>Capital: {{country?.capital}} </p>
+      <main class="box">
+        <div class="search-n-filter">
+          <div class="search-box">
+            <span>&#128269;</span>
+          <input v-model="countryName" type="text" placeholder="Search for a country... ">
+          </div>
+          
+          <div class="filter-box">
+            <ul>
+              <li><a href="">Filter by Region &#9662;</a>
+                <div class="dropdown">
+                  <ul >
+                    <li @click="handleRegions('Africa' )" >Africa</li>
+                    <li @click="handleRegions( 'America' )" >America</li>
+                    <li @click="handleRegions( 'Asia' )" >Asia</li>
+                    <li @click="handleRegions( 'Europe' )" >Europe</li>
+                    <li @click="handleRegions( 'Oceania' )" >Oceania</li>
+                  </ul>
+                </div>
+              </li>
+            </ul>
+          </div>
         </div>
-      </div>
-      
-    </div>
-  </main>
-
+        <div class="loading-icon"><LoadingState v-if="loading"/></div>
+       
+        <div class="card-out">
+          <div @click="router.push({name:'country', params:{name:country?.name.common}})" v-for="country in countries" class="card-in">
+            <img :src="country?.flags.png" alt="pic">
+            <div class="card-text">
+              <p class="card-title"> {{ country?.name.common }} </p>
+              <p>Population: {{country?.population}} </p>
+              <p>Region: {{country?.region}} </p>
+              <p>Capital: {{country?.capital?.[0]}} </p>
+            </div>
+          </div>
+          
+        </div>
+      </main>
+  </div>
 </template>
 
 <style scoped>
+
 .box{
   background-color: #FAFAFA;
   padding: 48px 78px 900px 78px;
@@ -142,6 +163,10 @@ input:focus {
   display: none;
 }
 
+.loading-icon{
+  display: flex;
+  justify-content: center;
+}
 
 .filter-box ul li:hover .dropdown{
   box-shadow: 0px 2px 9px 0px rgba(0, 0, 0, 0.05);
